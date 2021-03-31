@@ -1,0 +1,81 @@
+#######################################################
+Flash Firmware over gosund firmware
+https://www.tasmota.info/#ota-flash
+
+git clone https://github.com/ct-Open-Source/tuya-convert
+cd tuya-convert
+sudo ./install_prereq.sh
+sudo ./start_flash.sh
+
+
+
+Flashen mit Kabel
+https://tasmota.github.io/docs/devices/Gosund-SP1/
+RX und TX vertauschen
+
+https://www.sensate.io/de/firmware-maclinux
+./esptool -cp $PORTNAME -cd ck -ca 0x00000 -cf $FIRMWARE-BINARY
+
+
+#######################################################
+Configure Tasmota
+
+http://192.168.4.1
+
+Kalibrieren
+https://www.tasmota.info/sp112-flash/#messwerte
+
+Tasmota Konsole:
+savedata 1
+VoltageSet ###,##
+PowerSet ###,##
+savedata 0
+
+Configure Module
+Gosund SP1 v23 (55)
+
+Configure MQTT
+Host: sruetzler.de
+Port: 8883
+User: See topic (tasmota_12345A)
+Password: set password
+
+Configure Other
+MQTT enable
+
+
+#######################################################
+Configure Tasmota Firmware
+https://tasmota.github.io/docs/TLS/
+
+branch power-monitoring
+
+user_config_override.h
+
+#ifndef USE_MQTT_TLS 
+#define USE_MQTT_TLS                             // Use TLS for MQTT connection (+34.5k code, +7.0k mem and +4.8k additional during connection handshake)
+#define USE_MQTT_TLS_CA_CERT                   // Force full CA validation instead of fingerprints, slower, but simpler to use.  (+2.2k code, +1.9k mem during connection handshake)
+                                                   // This includes the LetsEncrypt CA in tasmota_ca.ino for verifying server certificates
+//  #define USE_MQTT_TLS_FORCE_EC_CIPHER           // Force Elliptic Curve cipher (higher security) required by some servers (automatically enabled with USE_MQTT_AWS_IOT) (+11.4k code, +0.4k mem)
+#endif
+
+#define MQTT_PORT              8883              // [MqttPort] MQTT port (10123 on CloudMQTT)
+
+https://tasmota.github.io/docs/Compile-your-build/
+https://tasmota.github.io/docs/Gitpod/
+
+platformio run -e tasmota
+
+
+#######################################################
+cloud
+ssh root@v45269.1blu.de
+
+#######################################################
+Mosquitto
+https://tasmota.github.io/docs/Securing-your-IoT-from-hacking/
+
+Add User
+sudo mosquitto_passwd -b /etc/mosquitto/conf.d/jp.pw ESP_123456 987654321
+sudo systemctl restart mosquitto
+
