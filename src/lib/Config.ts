@@ -40,18 +40,25 @@ export interface MqttConfig {
     host : string;       
 }
 
+export interface VoiceConfig {
+    apiKey : string;
+}
+
 interface ConfigData {
     mqtt : MqttConfig;
+    voice : VoiceConfig;
     users : {[userId:string]:UserConfig};
 }
 
 export interface Config {
     saveModeData(userId: string, device: string, data: LearningModeData|MonitoringModeData);
     on(event: 'mqtt', listener: (config: MqttConfig) => void): this;
+    on(event: 'voice', listener: (config: VoiceConfig) => void): this;
     on(event: 'users', listener: (users:string[]) => void): this;
     on(event: 'devices', listener: (userId:string, devices: string[]) => void): this;
     on(event: 'device', listener: (userId:string, device:string, config: DeviceConfig) => void): this;
     get(type: "mqtt" ):MqttConfig;
+    get(type: "voice" ):VoiceConfig;
     get(type: "users" ):string[];
     get(type: "devices", userId : string  ):string[];
     get(type: "device", userId : string, device: string  ):DeviceConfig;
@@ -83,11 +90,15 @@ class ConfigClass extends EventEmitter implements Config{
             const oldConfig = this.config;
             this.config = await this.readConfig();
             this.compareMqtt(oldConfig);
+            this.compareVoice(oldConfig);
             this.compareUsers(oldConfig);
         }catch(err){}
     }
     private compareMqtt(oldConfig:ConfigData){
         if (!_.isEqual(this.config.mqtt, oldConfig.mqtt)) this.emit("mqtt", this.config.mqtt);
+    }
+    private compareVoice(oldConfig:ConfigData){
+        if (!_.isEqual(this.config.voice, oldConfig.voice)) this.emit("voice", this.config.voice);
     }
     private compareUsers(oldConfig:ConfigData){
         const oldUsers = Object.keys(oldConfig.users);
@@ -109,11 +120,15 @@ class ConfigClass extends EventEmitter implements Config{
     private getMqtt(): MqttConfig{
         return this.config.mqtt;
     }
+    private getVoice(): VoiceConfig{
+        return this.config.voice;
+    }
     private getUsers(): string[]{
         return Object.keys(this.config.users);
     }
     get(type: any, userId?: any, device?: any):any {
         if ( type === "mqtt") return this.getMqtt();
+        if ( type === "voice") return this.getVoice();
         if ( type === "users") return this.getUsers();
         if ( type === "devices") return getDevices(this.config,userId);
         if ( type === "device") return getDevice(this.config,userId, device);

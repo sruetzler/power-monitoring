@@ -3,6 +3,7 @@ import Switch from "lib/Switch";
 import { DeviceConfig, Config, MonitoringModeData } from "lib/Config";
 import { toPlainObject } from "lodash";
 import { clear } from "console";
+import { get } from "https";
 
 export default class Monitoring implements IMode{
     private data:MonitoringModeData;
@@ -124,6 +125,7 @@ export default class Monitoring implements IMode{
         console.log("ready")
         this.data.state = "ready";
         console.log("ring ring");
+        this.call();
     }
     private setCheckReady(past?:number):boolean{
         if (this.data.lastStartMin && !past) return false;
@@ -141,5 +143,17 @@ export default class Monitoring implements IMode{
         this.data.lastStartMin = 0;
         clearTimeout(this.timeout);
     }
+    private call(){
+        const authorization = `basic ${this.configClass.get("voice").apiKey}`;
+        const path = `/api/voice?to=${this.config.number}&text=${this.config.message}`;
+        get({
+            host : "gateway.sms77.io",
+            path : encodeURI(path),
+            headers : {
+                authorization
+            }
+        });
+    }
 }
 //export type MonitoringState = "off"|"on"|"waiting"|"monitoring"|"ready";
+
