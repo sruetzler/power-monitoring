@@ -6,27 +6,42 @@ export default class User{
     private devices : {[device:string]:Device} = {};
     constructor(private userId:string, private config:Config, private mqtt:Mqtt){
         console.log("new user", userId);
+    }
+    async open(){
         const devices = this.config.get("devices",this.userId);
-        devices.forEach(device=>{
-            this.devices[device] = new Device(userId, device, this.config, this.mqtt);
-        });
+        for (let i=0; i<devices.length; i++){
+            const device = devices[i];
+            this.devices[device] = new Device(this.userId, device, this.config, this.mqtt);
+            await this.devices[device].open();
+        }
         this.config.on("devices", (userId, devices)=>{
             if (userId !== this.userId) return;
             this.onDevicesChanged(devices);
         });
     }
-    close(){
+    async delete(){
         console.log("delete user", this.userId);
-        Object.keys(this.devices).forEach(device=>this.devices[device].close());
+        for (let device in this.devices) await this.devices[device].delete();
     }
-    private onDevicesChanged(devices:string[]){
-        const oldDevices = this.devices;
-        devices.forEach(device=>{
+    async close(){
+        console.log("close user", this.userId);
+        for (let device in this.devices) await this.devices[device].close();
+    }
+    private async onDevicesChanged(devices:string[]){
+        const oldDevices = Object.keys(this.devices).reduce((devices,device)=>{
+            devices[device]=true;
+            return devices;
+        },{});
+        for (let i=0; i<devices.length; i++){
+            const device = devices[i];
             if (oldDevices[device]) delete oldDevices[device];
-            else this.devices[device] = new Device(this.userId, device, this.config, this.mqtt);
-        });
+            else{
+                this.devices[device] = new Device(this.userId, device, this.config, this.mqtt);
+                await this.devices[devices[i]].open();
+            }
+        }
         Object.keys(oldDevices).forEach(device=>{
-            this.devices[device].close();
+            this.devices[device].delete();
             delete this.devices[device];
         });
     }

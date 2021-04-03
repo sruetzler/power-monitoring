@@ -4,3 +4,5 @@ node_modules
 firmware/tasmota*
 config.json
 docu/PowerMonitoring.pdf
+.vscode
+learning
