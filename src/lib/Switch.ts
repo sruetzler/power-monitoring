@@ -15,6 +15,7 @@ export default class Switch extends EventEmitter implements ISwitch{
     private stateTopicCmd:string;
     private stateTopic:string;
     private sensorTopic:string;
+    private teleoPeriodTopic:string;
     private stateSubscription: number;
     private sensorSubscription: number;
     constructor(private mqtt:Mqtt, topic:string){
@@ -22,6 +23,7 @@ export default class Switch extends EventEmitter implements ISwitch{
         this.stateTopicCmd = `cmnd/${topic}/POWER`;
         this.stateTopic = `stat/${topic}/POWER`;
         this.sensorTopic = `tele/${topic}/SENSOR`;
+        this.teleoPeriodTopic = `cmnd/${topic}/TelePeriod`;
 
         this.subscribeState();
         this.subscribeSensor();
@@ -41,7 +43,7 @@ export default class Switch extends EventEmitter implements ISwitch{
             if (this.state !== state){
                 this.state = state;
                 const telePeriod = this.state?10:300;
-                this.mqtt.publish(`cmnd/${this.sensorTopic}/TelePeriod`, telePeriod.toString());
+                this.mqtt.publish(this.teleoPeriodTopic, telePeriod.toString());
 //                console.log("state", this.state);
                 this.emit("state", this.state);
             }
