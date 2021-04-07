@@ -6,7 +6,7 @@ export interface IMode {
     close():Promise<void>;
 };
 
-export function formatDate(date:Date):string{
+export function formatDate(date:Date, humanReadable?:boolean):string{
     const year = fixLength('' + date.getUTCFullYear());
     const month = fixLength('' + (date.getUTCMonth() + 1));
     const day = fixLength('' + date.getUTCDate());
@@ -14,7 +14,8 @@ export function formatDate(date:Date):string{
     const minute = fixLength('' + date.getUTCMinutes());
     const second = fixLength('' + date.getUTCSeconds());
 
-    return `${year}${month}${day}${hour}${minute}${second}`;
+    if (humanReadable) return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+    else return `${year}${month}${day}${hour}${minute}${second}`;
 }
 
 function fixLength(value:string){

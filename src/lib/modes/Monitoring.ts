@@ -12,6 +12,7 @@ export default class Monitoring implements IMode{
     private offTimeout:NodeJS.Timeout;
     private topic: string;
     constructor(private _switch:Switch,private config:DeviceConfig, private configClass:Config, private userId:string, private device:string){
+        console.log("new Monitoring", this.device);
         this.topic = config.topic;
         this.file = `${pathPrefix}/${this.config.topic}`;
         this.getData();
@@ -158,7 +159,7 @@ export default class Monitoring implements IMode{
         const authorization = `basic ${this.configClass.get("voice").apiKey}`;
         const path = `/api/voice?to=${this.config.number}&text=${this.config.message}`;
 
-        const now = formatDate(new Date());
+        const now = formatDate(new Date(),true);
 
         await appendFile(this.file, `${now} call: ${this.config.number}\n`, {encoding :"UTF8"})
         get({

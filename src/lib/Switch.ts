@@ -56,8 +56,8 @@ export default class Switch extends EventEmitter implements ISwitch{
             let ipAddress = e[0];
             if (ipAddress === "0.0.0.0" && e.length > 1) ipAddress = e[1].replace(/^\(/,"").replace(/\)$/,"");
             this.configClass.saveIpAddress(this.userId, this.topic, ipAddress);
-
         });
+        this.mqtt.publish(this.ipAddressTopic,"");
     }
     private subscribeState(){
         this.stateSubscription = this.mqtt.subscribe(this.stateTopic, (_topic, message:State)=>{
