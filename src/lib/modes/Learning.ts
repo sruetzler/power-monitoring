@@ -1,5 +1,5 @@
 import Switch from "lib/Switch";
-import { IMode } from "lib/definition";
+import { formatDate, IMode } from "lib/definition";
 import { DeviceConfig, LearningModeData, Config } from "lib/Config";
 import { writeFile, mkdirp, appendFile } from "fs-extra";
 
@@ -8,6 +8,7 @@ export default class Learning implements IMode{
     private path:string;
     private data:LearningModeData;
     constructor(private _switch:Switch,private config:DeviceConfig, private configClass:Config, private userId:string, private device:string){
+        console.log("new Learning", device);
         this.path = `${pathPrefix}/${this.config.topic}`;
         this.getData();
         this._switch.on("state", async (state:boolean)=>{
@@ -40,10 +41,10 @@ export default class Learning implements IMode{
         await this.onState(this._switch.getState());
     }
     async delete(){
-        await close();
+        console.log("delete Learning", this.device);
     }
     async close(){
-
+        console.log("close Learning", this.device);
     }
     private async saveData(){
         await this.configClass.saveModeData(this.userId, this.device, this.data);
@@ -57,29 +58,13 @@ export default class Learning implements IMode{
         this.data.startTime = now.getTime();
         this.data.learning = true;
         await mkdirp(`${this.path}`);
-        await writeFile(`${this.path}/${this.data.fileName}`,"0;0\n", "UTF8");
+        await writeFile(`${this.path}/${this.data.fileName}`,"0 0 =WENN(A1>0;WENN(A2>0;WENN(B1=0;A2-A1;0);0);0) =MAX(C:C)\n", "UTF8");
     }
     private async saveCurrent(current:number){
         const now = new Date();
         const time = Math.round((now.getTime() - this.data.startTime)/1000);
         const c = current.toString().replace(/\./g,",");
-        await appendFile(`${this.path}/${this.data.fileName}`, `${time};${c}\n`, {encoding :"UTF8"})
+        await appendFile(`${this.path}/${this.data.fileName}`, `${time} ${c}\n`, {encoding :"UTF8"})
     }
 }
 
-function formatDate(date:Date):string{
-    const year = fixLength('' + date.getUTCFullYear());
-    const month = fixLength('' + (date.getUTCMonth() + 1));
-    const day = fixLength('' + date.getUTCDate());
-    const hour = fixLength('' + date.getUTCHours());
-    const minute = fixLength('' + date.getUTCMinutes());
-    const second = fixLength('' + date.getUTCSeconds());
-
-    return `${year}${month}${day}${hour}${minute}${second}`;
-}
-
-function fixLength(value:string){
-    if (value.length < 2) 
-    value = '0' + value;
-    return value;
-}

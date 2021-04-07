@@ -19,6 +19,7 @@ export interface MonitoringModeData {
 }
 
 export interface DeviceConfig {
+    ipAddress : string,
     topic : string;
     mode : Mode;
     minCurrent : number;
@@ -52,6 +53,7 @@ interface ConfigData {
 
 export interface Config {
     saveModeData(userId: string, device: string, data: LearningModeData|MonitoringModeData);
+    saveIpAddress(userId: string, device: string, ipAddress: string);
     on(event: 'mqtt', listener: (config: MqttConfig) => void): this;
     on(event: 'voice', listener: (config: VoiceConfig) => void): this;
     on(event: 'users', listener: (users:string[]) => void): this;
@@ -137,6 +139,13 @@ class ConfigClass extends EventEmitter implements Config{
         const devices = this.config.users[userId].devices
         for (let i=0; i<devices.length; i++){
             if (devices[i].topic === device) this.config.users[userId].devices[i].modeData = data;
+        }
+        await writeFile("./config.json", JSON.stringify(this.config, null, 2), "utf8");
+    }
+    async saveIpAddress(userId: string, device: string, ipAddress: string) {
+        const devices = this.config.users[userId].devices
+        for (let i=0; i<devices.length; i++){
+            if (devices[i].topic === device) this.config.users[userId].devices[i].ipAddress = ipAddress;
         }
         await writeFile("./config.json", JSON.stringify(this.config, null, 2), "utf8");
     }

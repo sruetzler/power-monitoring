@@ -5,17 +5,22 @@
         "port" : 8883,
         "host" : "myHost"        
     },
+    "voice" : {
+        "apiKey" : "API Key"
+    }
     "users" : {
         "userId" : {
             "name" : "User Name",
-            "devices" : {
-                "topic" : "tasmota_12344",
-                "mode" : "learning",
-                "minCurrent" : 60,
-                "timeout" : 120,
-                "number" : "0123455",
-                "message" : "Hallo, ich bin fertig."
-            }
+            "devices" : [
+                {
+                    "topic" : "tasmota_12344",
+                    "mode" : "learning",
+                    "minCurrent" : 60,
+                    "timeout" : 120,
+                    "number" : "0123455",
+                    "message" : "Hallo, ich bin fertig."
+                }
+            ]
         }
     }
 }

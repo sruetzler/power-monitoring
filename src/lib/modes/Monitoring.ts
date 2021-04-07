@@ -1,16 +1,24 @@
-import { IMode } from "lib/definition";
+import { formatDate, IMode } from "lib/definition";
 import Switch from "lib/Switch";
 import { DeviceConfig, Config, MonitoringModeData } from "lib/Config";
-import { toPlainObject } from "lodash";
-import { clear } from "console";
 import { get } from "https";
+import { appendFile, mkdirp } from "fs-extra";
 
+const pathPrefix = "./called";
 export default class Monitoring implements IMode{
+    private file:string;
     private data:MonitoringModeData;
     private timeout:NodeJS.Timeout;
     private offTimeout:NodeJS.Timeout;
+    private topic: string;
     constructor(private _switch:Switch,private config:DeviceConfig, private configClass:Config, private userId:string, private device:string){
+        this.topic = config.topic;
+        this.file = `${pathPrefix}/${this.config.topic}`;
         this.getData();
+        this.configClass.on("device", (userId, device, config)=>{
+            if (userId !== this.userId || device !== this.device) return;
+            this.config = config;
+        });
         this._switch.on("state", async (state:boolean)=>{
             await this.onState(state);
         });
@@ -31,6 +39,7 @@ export default class Monitoring implements IMode{
         }
     }
     async open(){
+        await mkdirp(`${pathPrefix}`);
         await this.init();
         await this.onState(this._switch.getState());
         await this.onCurrent(this._switch.getCurrent());
@@ -41,12 +50,17 @@ export default class Monitoring implements IMode{
             this.startOffTimeout(past);
             if (this.data.state === "monitoring") this.setCheckReady(past);
         }
-        console.log(this.data.state)
+        console.log(this.topic,this.data.state)
     }
     async delete(){
-        await close();
+        console.log("delete Monitoring", this.device);
+        await this._close();
     }
     async close(){
+        console.log("close Monitoring", this.device);
+        await this._close();
+    }
+    private async _close(){
         clearTimeout(this.timeout);
         clearTimeout(this.offTimeout);
     }
@@ -74,7 +88,7 @@ export default class Monitoring implements IMode{
         if (changed) await this.saveData();
     }
     private toOn(){
-        console.log("on")
+        console.log(this.topic,"on")
         this.data.lastStartMin = 0;
         this.data.state = "on";
         this.startOffTimeout();
@@ -99,7 +113,7 @@ export default class Monitoring implements IMode{
         return true;
     }
     private toWaiting(){
-        console.log("waiting")
+        console.log(this.topic,"waiting")
         this.data.state = "waiting";
         clearTimeout(this.timeout);
         this.timeout = setTimeout(async ()=>{
@@ -109,43 +123,44 @@ export default class Monitoring implements IMode{
         this._switch.switch(true);
     }
     private toMonitoring():boolean{
-        console.log("monitoring")
+        console.log(this.topic,"monitoring")
         this.data.state = "monitoring";
         this.data.lastStartMin = 0;
         clearTimeout(this.timeout);
         return true;
     }
     private toOff(){
-        console.log("off")
+        console.log(this.topic,"off")
         this.data.lastStartMin = 0;
         this.data.state = "off";
         this._switch.switch(false);
     }
-    private toReady(){
-        console.log("ready")
+    private async toReady(){
+        console.log(this.topic,"ready")
         this.data.state = "ready";
-        console.log("ring ring");
-        this.call();
+        await this.call();
     }
     private setCheckReady(past?:number):boolean{
         if (this.data.lastStartMin && !past) return false;
         if (!past) past = 0;
-        console.log("checkReady")
         this.timeout = setTimeout(async ()=>{
-            this.toReady();
+            await this.toReady();
             await this.saveData();
         }, (this.config.timeout * 1000) - past);
         this.timeout.unref();
     }
     private resetCheckReady():boolean{
         if (!this.data.lastStartMin) return false;
-        console.log("not checkReady")
         this.data.lastStartMin = 0;
         clearTimeout(this.timeout);
     }
-    private call(){
+    private async call(){
         const authorization = `basic ${this.configClass.get("voice").apiKey}`;
         const path = `/api/voice?to=${this.config.number}&text=${this.config.message}`;
+
+        const now = formatDate(new Date());
+
+        await appendFile(this.file, `${now} call: ${this.config.number}\n`, {encoding :"UTF8"})
         get({
             host : "gateway.sms77.io",
             path : encodeURI(path),
