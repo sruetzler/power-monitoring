@@ -26,6 +26,8 @@ export default class Switch extends EventEmitter implements ISwitch{
     private info2Topic:string;
     private stateSubscription: number;
     private sensorSubscription: number;
+    private info2Subscription: number;
+    private resultSubscription: number;
     constructor(private mqtt:Mqtt, private userId: string, private topic:string, private configClass:Config){
         super();
         this.stateTopicCmd = `cmnd/${topic}/POWER`;
@@ -48,9 +50,11 @@ export default class Switch extends EventEmitter implements ISwitch{
     async close(){
         this.mqtt.unsubscribe(this.stateSubscription);
         this.mqtt.unsubscribe(this.sensorSubscription);
+        this.mqtt.unsubscribe(this.info2Subscription);
+        this.mqtt.unsubscribe(this.resultSubscription);
     }
     private async getIpAddress(){
-        this.mqtt.subscribe(this.resultTopic, (_topic, message:string)=>{
+        this.resultSubscription = this.mqtt.subscribe(this.resultTopic, (_topic, message:string)=>{
             const result = JSON.parse(message) as Result;
             if (!result.IPAddress1) return;
             const data = result.IPAddress1;
@@ -60,7 +64,7 @@ export default class Switch extends EventEmitter implements ISwitch{
             this.configClass.saveIpAddress(this.userId, this.topic, ipAddress);
         });
         this.mqtt.publish(this.ipAddressTopic,"");
-        this.mqtt.subscribe(this.info2Topic, (_topic, message:string)=>{
+        this.info2Subscription = this.mqtt.subscribe(this.info2Topic, (_topic, message:string)=>{
             const result = JSON.parse(message) as Result;
             if (!result.IPAddress) return;
             const ipAddress = result.IPAddress;
