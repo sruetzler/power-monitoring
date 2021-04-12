@@ -23,6 +23,7 @@ export default class Switch extends EventEmitter implements ISwitch{
     private telePeriodTopic:string;
     private resultTopic:string;
     private ipAddressTopic:string;
+    private info2Topic:string;
     private stateSubscription: number;
     private sensorSubscription: number;
     constructor(private mqtt:Mqtt, private userId: string, private topic:string, private configClass:Config){
@@ -33,6 +34,7 @@ export default class Switch extends EventEmitter implements ISwitch{
         this.telePeriodTopic = `cmnd/${topic}/TelePeriod`;
         this.resultTopic = `stat/${topic}/RESULT`;
         this.ipAddressTopic = `cmnd/${topic}/IPAddress1`;
+        this.info2Topic = `tele/${topic}/INFO2`;
 
         this.subscribeState();
         this.subscribeSensor();
@@ -58,6 +60,12 @@ export default class Switch extends EventEmitter implements ISwitch{
             this.configClass.saveIpAddress(this.userId, this.topic, ipAddress);
         });
         this.mqtt.publish(this.ipAddressTopic,"");
+        this.mqtt.subscribe(this.info2Topic, (_topic, message:string)=>{
+            const result = JSON.parse(message) as Result;
+            if (!result.IPAddress) return;
+            const ipAddress = result.IPAddress;
+            this.configClass.saveIpAddress(this.userId, this.topic, ipAddress);
+        });
     }
     private subscribeState(){
         this.stateSubscription = this.mqtt.subscribe(this.stateTopic, (_topic, message:State)=>{
